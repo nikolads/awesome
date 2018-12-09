@@ -17,7 +17,7 @@ require("awful.hotkeys_popup.keys")
 -- Handle awesome errors
 require("errors")
 
-local keys = require("keys")
+local kb = require("kb")
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
@@ -61,10 +61,6 @@ end
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
 -- }}}
-
--- Keyboard map indicator and switcher
--- mykeyboardlayout = awful.widget.keyboardlayout()
-mykeyboardlayout = keys.widget
 
 -- {{{ Wibar
 -- Create a textclock widget
@@ -152,7 +148,7 @@ awful.screen.connect_for_each_screen(function(s)
         s.mytasklist, -- Middle widget
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
-            mykeyboardlayout,
+            kb.widget,
             wibox.widget.systray(),
             mytextclock,
             s.mylayoutbox,
@@ -207,7 +203,13 @@ globalkeys = gears.table.join(
 
     -- Menubar
     awful.key({ modkey }, "p", function() menubar.show() end,
-              {description = "show the menubar", group = "launcher"})
+              {description = "show the menubar", group = "launcher"}),
+
+    -- Keyboard layout
+    awful.key({ modkey }, "space", kb.next_layout,
+        {description = "next keyboard layout", group = "awesome"}),
+    awful.key({ modkey, "Shift" }, "space", kb.prev_layout,
+        {description = "previous keyboard layout", group = "awesome"})
 )
 
 clientkeys = gears.table.join(
@@ -219,16 +221,10 @@ clientkeys = gears.table.join(
         {description = "toggle fullscreen", group = "client"}),
 
     awful.key({ modkey}, "w", function (c) c:kill() end,
-        {description = "close", group = "client"}),
+        {description = "close", group = "client"})
 
     -- awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ,
     --   {description = "toggle floating", group = "client"}),
-
-    awful.key({ modkey }, "space", function(c) c.keyboard_layout.next() end,
-        {description = "next keyboard layout", group = "client"}),
-
-    awful.key({ modkey, "Shift" }, "space", function(c) c.keyboard_layout.prev() end,
-        {description = "previous keyboard layout", group = "client"})
 )
 
 -- Bind all key numbers to tags.
@@ -343,8 +339,6 @@ client.connect_signal("manage", function (c)
         -- Prevent clients from being unreachable after screen count changes.
         awful.placement.no_offscreen(c)
     end
-
-    c.keyboard_layout = keys.new_client()
 end)
 
 -- Add a titlebar if titlebars_enabled is set to true in the rules.
@@ -387,7 +381,6 @@ end)
 
 client.connect_signal("focus", function(c)
     c.border_color = beautiful.border_focus
-    c.keyboard_layout.set()
 end)
 
 client.connect_signal("unfocus", function(c)
