@@ -1,3 +1,5 @@
+require("core_ext")
+
 -- Standard awesome library
 local gears = require("gears")
 local awful = require("awful")
@@ -6,18 +8,18 @@ require("awful.autofocus")
 local wibox = require("wibox")
 -- Theme handling library
 local beautiful = require("beautiful")
--- Notification library
-local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
--- Enable hotkeys help widget for VIM and other apps
--- when client with a matching name is opened:
-require("awful.hotkeys_popup.keys")
+
+-- -- Enable hotkeys help widget for VIM and other apps
+-- -- when client with a matching name is opened:
+-- require("awful.hotkeys_popup.keys")
 
 -- Handle awesome errors
 require("errors")
 
-local kb = require("kb")
+local kb_layout = require("keys/layout")
+local binding = require("keys/binding")
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
@@ -28,13 +30,6 @@ terminal = "xterm"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
--- Default modkey.
--- Usually, Mod4 is the key with a logo between Control and Alt.
--- If you do not like this or do not have such a key,
--- I suggest you to remap Mod4 to another key using xmodmap or other tools.
--- However, you can use another modifier like Mod1, but it may interact with others.
-modkey = "Mod4"
-
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
     awful.layout.suit.max,
@@ -42,6 +37,8 @@ awful.layout.layouts = {
     awful.layout.suit.tile,
 }
 -- }}}
+
+local modkey = "Mod4"
 
 -- {{{ Helper functions
 local function client_menu_toggle_fn()
@@ -148,7 +145,7 @@ awful.screen.connect_for_each_screen(function(s)
         s.mytasklist, -- Middle widget
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
-            kb.widget,
+            kb_layout.widget,
             wibox.widget.systray(),
             mytextclock,
             s.mylayoutbox,
@@ -162,19 +159,19 @@ end)
 
 -- {{{ Key bindings
 globalkeys = gears.table.join(
-    awful.key({ modkey }, "/", hotkeys_popup.show_help,
+    binding.key("M-/", hotkeys_popup.show_help,
         {description = "show help", group = "awesome"}),
-    awful.key({ modkey, "Control" }, "r", awesome.restart,
+    binding.key("M-C-r", awesome.restart,
         {description = "reload awesome", group = "awesome"}),
-    awful.key({ modkey, "Shift" }, "q", awesome.quit,
+    binding.key("M-S-q", awesome.quit,
         {description = "quit awesome", group = "awesome"}),
 
     -- Brightness
-    awful.key({ }, "XF86MonBrightnessDown", function () awful.util.spawn("xbacklight -10%") end),
-    awful.key({ }, "XF86MonBrightnessUp", function () awful.util.spawn("xbacklight +10%") end),
+    binding.key("XF86MonBrightnessDown", function () awful.util.spawn("xbacklight -10%") end),
+    binding.key("XF86MonBrightnessUp", function () awful.util.spawn("xbacklight +10%") end),
 
     -- Layout manipulation
-    awful.key({ modkey }, "Tab", function ()
+    binding.key("M-Tab", function ()
             awful.client.focus.history.previous()
             if client.focus then
                 client.focus:raise()
@@ -183,14 +180,14 @@ globalkeys = gears.table.join(
         {description = "go back", group = "client"}),
 
     -- Standard program
-    awful.key({ modkey }, "Return", function() awful.spawn(terminal) end,
+    binding.key("M-Return", function() awful.spawn(terminal) end,
         {description = "open a terminal", group = "launcher"}),
 
     -- Prompt
-    awful.key({ modkey }, "r", function () awful.screen.focused().mypromptbox:run() end,
+    binding.key("M-r", function () awful.screen.focused().mypromptbox:run() end,
         {description = "run prompt", group = "launcher"}),
 
-    awful.key({ modkey }, "x",
+    binding.key("M-x",
         function ()
             awful.prompt.run {
                 prompt       = "Run Lua code: ",
@@ -202,29 +199,26 @@ globalkeys = gears.table.join(
         {description = "lua execute prompt", group = "awesome"}),
 
     -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end,
+    binding.key("M-p", function() menubar.show() end,
               {description = "show the menubar", group = "launcher"}),
 
     -- Keyboard layout
-    awful.key({ modkey }, "space", kb.next_layout,
+    binding.key("M-space", kb_layout.next_layout,
         {description = "next keyboard layout", group = "awesome"}),
-    awful.key({ modkey, "Shift" }, "space", kb.prev_layout,
+    binding.key("M-S-space", kb_layout.prev_layout,
         {description = "previous keyboard layout", group = "awesome"})
 )
 
 clientkeys = gears.table.join(
-    awful.key({ modkey }, "f",
+    binding.key("M-f",
         function (c)
             c.fullscreen = not c.fullscreen
             c:raise()
         end,
         {description = "toggle fullscreen", group = "client"}),
 
-    awful.key({ modkey}, "w", function (c) c:kill() end,
+    binding.key("M-w", function (c) c:kill() end,
         {description = "close", group = "client"})
-
-    -- awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ,
-    --   {description = "toggle floating", group = "client"}),
 )
 
 -- Bind all key numbers to tags.
@@ -233,7 +227,7 @@ clientkeys = gears.table.join(
 for i = 1, 9 do
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
-        awful.key({ modkey }, "#" .. i + 9,
+        binding.key("M-#" .. i + 9,
                   function ()
                         local screen = awful.screen.focused()
                         local tag = screen.tags[i]
@@ -243,7 +237,7 @@ for i = 1, 9 do
                   end,
                   {description = "view tag #"..i, group = "tag"}),
         -- Toggle tag display.
-        awful.key({ modkey, "Control" }, "#" .. i + 9,
+        binding.key("M-C-#" .. i + 9,
                   function ()
                       local screen = awful.screen.focused()
                       local tag = screen.tags[i]
@@ -253,7 +247,7 @@ for i = 1, 9 do
                   end,
                   {description = "toggle tag #" .. i, group = "tag"}),
         -- Move client to tag.
-        awful.key({ modkey, "Shift" }, "#" .. i + 9,
+        binding.key("M-S-#" .. i + 9,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -264,7 +258,7 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
         -- Toggle tag on focused client.
-        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
+        binding.key("M-C-S-#" .. i + 9,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]

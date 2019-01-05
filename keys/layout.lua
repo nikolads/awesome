@@ -1,10 +1,12 @@
+-- Keyboard layout switching logic and widget
+
 local wibox = require("wibox")
 
-local avail_layouts = { "us", "bg" }
+local available_layouts = { "us", "bg" }
 local widget = wibox.widget.textbox()
 
 local set_system_layout = function(i)
-    local layout = avail_layouts[i]
+    local layout = available_layouts[i]
     os.execute(table.concat({"setxkbmap", layout}, " "))
     widget:set_text(layout)
 end
@@ -26,12 +28,12 @@ Layout.prototype = {
     end,
 
     next = function(self)
-        self.i = self.i % #avail_layouts + 1
+        self.i = self.i % #available_layouts + 1
         self:set()
     end,
 
     prev = function(self)
-        self.i = (self.i + #avail_layouts) % #avail_layouts - 1
+        self.i = (self.i + #available_layouts) % #available_layouts - 1
         self:set()
     end,
 }
