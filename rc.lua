@@ -9,17 +9,14 @@ local wibox = require("wibox")
 -- Theme handling library
 local beautiful = require("beautiful")
 local menubar = require("menubar")
-local hotkeys_popup = require("awful.hotkeys_popup").widget
-
--- -- Enable hotkeys help widget for VIM and other apps
--- -- when client with a matching name is opened:
--- require("awful.hotkeys_popup.keys")
 
 -- Handle awesome errors
 require("errors")
 
 local kb_layout = require("keys/layout")
 local binding = require("keys/binding")
+
+local hotkeys_popup = require("awful.hotkeys_popup").widget.new({labels = binding.AWFUL_LABELS})
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
@@ -159,7 +156,7 @@ end)
 
 -- {{{ Key bindings
 globalkeys = gears.table.join(
-    binding.key("M-/", hotkeys_popup.show_help,
+    binding.key("M-/", function() hotkeys_popup:show_help() end,
         {description = "show help", group = "awesome"}),
     binding.key("M-C-r", awesome.restart,
         {description = "reload awesome", group = "awesome"}),
@@ -167,8 +164,8 @@ globalkeys = gears.table.join(
         {description = "quit awesome", group = "awesome"}),
 
     -- Brightness
-    binding.key("XF86MonBrightnessDown", function () awful.util.spawn("xbacklight -10%") end),
-    binding.key("XF86MonBrightnessUp", function () awful.util.spawn("xbacklight +10%") end),
+    binding.key("XF86MonBrightnessDown", function() awful.util.spawn("xbacklight -10%") end),
+    binding.key("XF86MonBrightnessUp", function() awful.util.spawn("xbacklight +10%") end),
 
     -- Layout manipulation
     binding.key("M-Tab", function ()

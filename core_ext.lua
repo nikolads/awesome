@@ -5,13 +5,13 @@
 -- Note: this is not recursive, because a recursive function would cause
 -- an endless loop with tables that mutualy reference each other.
 function table:to_string()
-    local str = "{"
+    local str = "{\n"
 
     for k, v in pairs(self) do
-        str = str .. tostring(k) .. "=" .. tostring(v) .. ","
+        str = str .. "  " .. tostring(k) .. "=" .. tostring(v) .. "\n"
     end
 
-    str = str .. "}"
+    str = str .. "}\n"
 
     return str
 end
