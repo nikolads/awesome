@@ -1,6 +1,6 @@
 -- Extensions to the lua core library
 
--- Convert table to string.
+-- Convert table to string. For debug purposes.
 --
 -- Note: this is not recursive, because a recursive function would cause
 -- an endless loop with tables that mutualy reference each other.

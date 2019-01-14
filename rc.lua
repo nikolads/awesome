@@ -6,8 +6,6 @@ local awful = require("awful")
 require("awful.autofocus")
 -- Widget and layout library
 local wibox = require("wibox")
--- Theme handling library
-local beautiful = require("beautiful")
 local menubar = require("menubar")
 
 -- Handle awesome errors
@@ -15,12 +13,10 @@ require("errors")
 
 local kb_layout = require("keys/layout")
 local binding = require("keys/binding")
+local theme = require("theme")
+local layout = require("layout")
 
 local hotkeys_popup = require("awful.hotkeys_popup").widget.new({labels = binding.AWFUL_LABELS})
-
--- {{{ Variable definitions
--- Themes define colours, icons, font and wallpapers.
-beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "xterm"
@@ -29,9 +25,10 @@ editor_cmd = terminal .. " -e " .. editor
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
-    awful.layout.suit.max,
-    awful.layout.suit.floating,
-    awful.layout.suit.tile,
+    -- awful.layout.suit.max,
+    -- awful.layout.suit.floating,
+    -- awful.layout.suit.tile,
+    layout.Grid.new()
 }
 -- }}}
 
@@ -90,23 +87,9 @@ local tasklist_buttons = gears.table.join(
     awful.button({ }, 5, function () awful.client.focus.byidx(-1) end)
 )
 
-local function set_wallpaper(screen)
-    if beautiful.wallpaper then
-        local wallpaper = beautiful.wallpaper
-        if type(wallpaper) == "function" then
-            wallpaper = wallpaper(screen)
-        end
-
-        gears.wallpaper.maximized(wallpaper, screen, true)
-    end
-end
-
--- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
-screen.connect_signal("property::geometry", set_wallpaper)
-
 awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
-    set_wallpaper(s)
+    theme.set_wallpaper(s)
 
     -- Each screen has its own tag table.
     awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
@@ -135,7 +118,6 @@ awful.screen.connect_for_each_screen(function(s)
         layout = wibox.layout.align.horizontal,
         { -- Left widgets
             layout = wibox.layout.fixed.horizontal,
-            -- mylauncher,
             s.mytaglist,
             s.mypromptbox,
         },
@@ -158,10 +140,8 @@ end)
 globalkeys = gears.table.join(
     binding.key("M-/", function() hotkeys_popup:show_help() end,
         {description = "show help", group = "awesome"}),
-    binding.key("M-C-r", awesome.restart,
-        {description = "reload awesome", group = "awesome"}),
-    binding.key("M-S-q", awesome.quit,
-        {description = "quit awesome", group = "awesome"}),
+    binding.key("M-C-r", awesome.restart, {description = "reload awesome", group = "awesome"}),
+    binding.key("M-S-q", awesome.quit, {description = "quit awesome", group = "awesome"}),
 
     -- Brightness
     binding.key("XF86MonBrightnessDown", function() awful.util.spawn("xbacklight -10%") end),
@@ -214,17 +194,25 @@ clientkeys = gears.table.join(
         end,
         {description = "toggle fullscreen", group = "client"}),
 
-    binding.key("M-w", function (c) c:kill() end,
-        {description = "close", group = "client"})
+    binding.key("M-q", function (c) c:kill() end,
+        {description = "close", group = "client"}),
+
+    -- h - left
+    -- l - right
+    -- k - up
+    -- j - right
+
+    binding.key("M-y", function() awful.tag.incmwfact(-0.02) end,
+        {description = "decrease client width", group = "client"}),
+    binding.key("M-o", function() awful.tag.incmwfact(0.02) end,
+        {description = "increase client width", group = "client"})
 )
 
 -- Bind all key numbers to tags.
--- Be careful: we use keycodes to make it work on any keyboard layout.
--- This should map on the top row of your keyboard, usually 1 to 9.
 for i = 1, 9 do
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
-        binding.key("M-#" .. i + 9,
+        binding.key("M-" .. i,
                   function ()
                         local screen = awful.screen.focused()
                         local tag = screen.tags[i]
@@ -234,7 +222,7 @@ for i = 1, 9 do
                   end,
                   {description = "view tag #"..i, group = "tag"}),
         -- Toggle tag display.
-        binding.key("M-C-#" .. i + 9,
+        binding.key("M-C-" .. i,
                   function ()
                       local screen = awful.screen.focused()
                       local tag = screen.tags[i]
@@ -244,7 +232,7 @@ for i = 1, 9 do
                   end,
                   {description = "toggle tag #" .. i, group = "tag"}),
         -- Move client to tag.
-        binding.key("M-S-#" .. i + 9,
+        binding.key("M-S-" .. i,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -255,7 +243,7 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
         -- Toggle tag on focused client.
-        binding.key("M-C-S-#" .. i + 9,
+        binding.key("M-C-S-" .. i,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -284,8 +272,8 @@ awful.rules.rules = {
     {
         rule = {},
         properties = {
-            border_width = beautiful.border_width,
-            border_color = beautiful.border_normal,
+            border_width = theme.beautiful.border_width,
+            border_color = theme.beautiful.border_normal,
             focus = awful.client.focus.filter,
             raise = true,
             keys = clientkeys,
@@ -368,13 +356,5 @@ client.connect_signal("request::titlebars", function(c)
         },
         layout = wibox.layout.align.horizontal
     }
-end)
-
-client.connect_signal("focus", function(c)
-    c.border_color = beautiful.border_focus
-end)
-
-client.connect_signal("unfocus", function(c)
-    c.border_color = beautiful.border_normal
 end)
 -- }}}
