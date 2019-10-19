@@ -2,13 +2,22 @@
 
 local wibox = require("wibox")
 
-local available_layouts = { "us", "bg" }
+local available_layouts = { 
+    { layout = "us" },
+    { layout = "bg", variant = "phonetic" }
+}
 local widget = wibox.widget.textbox()
 
 local set_system_layout = function(i)
     local layout = available_layouts[i]
-    os.execute(table.concat({"setxkbmap", layout}, " "))
-    widget:set_text(layout)
+
+    if layout.variant then
+        os.execute(table.concat({"setxkbmap", layout.layout, layout.variant}, " "))
+    else
+        os.execute(table.concat({"setxkbmap", layout.layout}, " "))
+    end
+
+    widget:set_text(layout.layout)
 end
 
 local Layout = {}

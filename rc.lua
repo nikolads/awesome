@@ -1,4 +1,4 @@
-require("core_ext")
+require("src/core_ext")
 
 -- Standard awesome library
 local gears = require("gears")
@@ -9,26 +9,26 @@ local wibox = require("wibox")
 local menubar = require("menubar")
 
 -- Handle awesome errors
-require("errors")
+require("src/errors")
 
-local kb_layout = require("keys/layout")
-local binding = require("keys/binding")
-local theme = require("theme")
-local layout = require("layout")
+local kb_layout = require("src/keys/layout")
+local binding = require("src/keys/binding")
+local theme = require("src/theme")
+local layout = require("src/layout")
 
 local hotkeys_popup = require("awful.hotkeys_popup").widget.new({labels = binding.AWFUL_LABELS})
 
 -- This is used later as the default terminal and editor to run.
-terminal = "xterm"
+terminal = "kitty"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
-    -- awful.layout.suit.max,
+    awful.layout.suit.max,
     -- awful.layout.suit.floating,
-    -- awful.layout.suit.tile,
-    layout.Grid.new()
+    awful.layout.suit.tile,
+    -- layout.Grid.new()
 }
 -- }}}
 
@@ -92,7 +92,8 @@ awful.screen.connect_for_each_screen(function(s)
     theme.set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    awful.tag({ "~", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    s.tags[2]:view_only()
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -140,12 +141,16 @@ end)
 globalkeys = gears.table.join(
     binding.key("M-/", function() hotkeys_popup:show_help() end,
         {description = "show help", group = "awesome"}),
-    binding.key("M-C-r", awesome.restart, {description = "reload awesome", group = "awesome"}),
+    binding.key("M-S-r", awesome.restart, {description = "reload awesome", group = "awesome"}),
     binding.key("M-S-q", awesome.quit, {description = "quit awesome", group = "awesome"}),
 
-    -- Brightness
+    -- Media
     binding.key("XF86MonBrightnessDown", function() awful.util.spawn("xbacklight -10%") end),
     binding.key("XF86MonBrightnessUp", function() awful.util.spawn("xbacklight +10%") end),
+    binding.key("XF86AudioMute", function() awful.util.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle") end),
+    binding.key("XF86AudioLowerVolume", function() awful.util.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%") end),
+    binding.key("XF86AudioRaiseVolume", function() awful.util.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%") end),
+    binding.key("XF86AudioMicMute", function() awful.util.spawn("pactl set-source-mute @DEFAULT_SOURCE@ toggle") end),
 
     -- Layout manipulation
     binding.key("M-Tab", function ()
@@ -156,7 +161,7 @@ globalkeys = gears.table.join(
         end,
         {description = "go back", group = "client"}),
 
-    -- Standard program
+    -- Standard programs
     binding.key("M-Return", function() awful.spawn(terminal) end,
         {description = "open a terminal", group = "launcher"}),
 
@@ -197,11 +202,6 @@ clientkeys = gears.table.join(
     binding.key("M-q", function (c) c:kill() end,
         {description = "close", group = "client"}),
 
-    -- h - left
-    -- l - right
-    -- k - up
-    -- j - right
-
     binding.key("M-y", function() awful.tag.incmwfact(-0.02) end,
         {description = "decrease client width", group = "client"}),
     binding.key("M-o", function() awful.tag.incmwfact(0.02) end,
@@ -209,10 +209,10 @@ clientkeys = gears.table.join(
 )
 
 -- Bind all key numbers to tags.
-for i = 1, 9 do
+local function handle_tag(key, i)
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
-        binding.key("M-" .. i,
+        binding.key("M-" .. key,
                   function ()
                         local screen = awful.screen.focused()
                         local tag = screen.tags[i]
@@ -222,7 +222,7 @@ for i = 1, 9 do
                   end,
                   {description = "view tag #"..i, group = "tag"}),
         -- Toggle tag display.
-        binding.key("M-C-" .. i,
+        binding.key("M-C-" .. key,
                   function ()
                       local screen = awful.screen.focused()
                       local tag = screen.tags[i]
@@ -232,7 +232,7 @@ for i = 1, 9 do
                   end,
                   {description = "toggle tag #" .. i, group = "tag"}),
         -- Move client to tag.
-        binding.key("M-S-" .. i,
+        binding.key("M-S-" .. key,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -243,7 +243,7 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
         -- Toggle tag on focused client.
-        binding.key("M-C-S-" .. i,
+        binding.key("M-C-S-" .. key,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -255,6 +255,11 @@ for i = 1, 9 do
                   {description = "toggle focused client on tag #" .. i, group = "tag"})
     )
 end
+
+for i = 1, 9 do
+    handle_tag(i, i + 1)
+end
+handle_tag('grave', 1)
 
 clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
@@ -312,9 +317,10 @@ client.connect_signal("manage", function (c)
     -- i.e. put it at the end of others instead of setting it master.
     -- if not awesome.startup then awful.client.setslave(c) end
 
-    if awesome.startup and
-      not c.size_hints.user_position
-      and not c.size_hints.program_position then
+    if awesome.startup
+        and not c.size_hints.user_position
+        and not c.size_hints.program_position
+    then
         -- Prevent clients from being unreachable after screen count changes.
         awful.placement.no_offscreen(c)
     end
