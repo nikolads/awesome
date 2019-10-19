@@ -109,7 +109,36 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytaglist = awful.widget.taglist(s, awful.widget.taglist.filter.all, taglist_buttons)
 
     -- Create a tasklist widget
-    s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
+    s.mytasklist =  awful.widget.tasklist {
+        screen = s,
+        filter = awful.widget.tasklist.filter.currenttags,
+        buttons = tasklist_buttons,
+        widget_template = {
+           widget = wibox.container.background, 
+           id = 'background_role',
+           {
+                layout = wibox.layout.fixed.horizontal,
+                {
+                    widget = wibox.container.margin,
+                    margins = 3,
+                    {
+                        widget = wibox.widget.imagebox,
+                        id = 'icon_role',
+                    },
+                },
+                {
+                    widget = wibox.container.constraint,
+                    strategy = "exact",
+                    width = 300,
+                    {
+                        widget = wibox.widget.textbox,
+                        id = 'text_role',
+                    }
+                },
+            },
+        }
+    }
+    s.mytasklist = wibox.container.margin(s.mytasklist, 5, 5)
 
     -- Create the wibox
     s.mywibox = awful.wibar({ position = "top", screen = s })
@@ -122,13 +151,17 @@ awful.screen.connect_for_each_screen(function(s)
             s.mytaglist,
             s.mypromptbox,
         },
-        s.mytasklist, -- Middle widget
+        {
+            layout = wibox.layout.fixed.horizontal,
+            s.mytasklist,
+        },
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
-            kb_layout.widget,
             wibox.widget.systray(),
+            kb_layout.widget,
+            wibox.widget.textbox(' |'),
             mytextclock,
-            s.mylayoutbox,
+            --s.mylayoutbox,
         },
     }
 end)
@@ -153,13 +186,23 @@ globalkeys = gears.table.join(
     binding.key("XF86AudioMicMute", function() awful.util.spawn("pactl set-source-mute @DEFAULT_SOURCE@ toggle") end),
 
     -- Layout manipulation
-    binding.key("M-Tab", function ()
-            awful.client.focus.history.previous()
+    binding.key("M-Tab",
+        function ()
+            awful.client.focus.byidx(1)
             if client.focus then
                 client.focus:raise()
             end
         end,
-        {description = "go back", group = "client"}),
+        {description = "focus next window", group = "client"}),
+
+    binding.key("M-S-Tab",
+        function()
+            awful.client.focus.byidx(-1)
+            if client.focus then
+                client.focus:raise()
+            end
+        end,
+        {description = "focus previous window", group = "client"}),
 
     -- Standard programs
     binding.key("M-Return", function() awful.spawn(terminal) end,
@@ -180,9 +223,24 @@ globalkeys = gears.table.join(
         end,
         {description = "lua execute prompt", group = "awesome"}),
 
+    binding.key("M-f", function() awful.spawn("firefox") end,
+        {description = "open web browser", group = "launcher"}),
+
+    binding.key("M-S-f", function() awful.spawn("firefox --private-window") end,
+        {description = "open web browser (private window)", group = "launcher"}),
+
     -- Menubar
     binding.key("M-p", function() menubar.show() end,
-              {description = "show the menubar", group = "launcher"}),
+        {description = "show the menubar", group = "launcher"}),
+
+    -- Lock screen
+    binding.key("M-l",
+        function()
+            awful.util.spawn_with_shell('magick import -window root jpg:- ' ..
+                '| magick jpg:- -scale 5% +level 0%,60% -scale 2000% png:- ' ..
+                '| i3lock -i /dev/stdin')
+        end,
+        {description = "lock screen", group = "awesome" }),
 
     -- Keyboard layout
     binding.key("M-space", kb_layout.next_layout,
@@ -192,12 +250,14 @@ globalkeys = gears.table.join(
 )
 
 clientkeys = gears.table.join(
+    --[[
     binding.key("M-f",
         function (c)
             c.fullscreen = not c.fullscreen
             c:raise()
         end,
         {description = "toggle fullscreen", group = "client"}),
+    --]]
 
     binding.key("M-q", function (c) c:kill() end,
         {description = "close", group = "client"}),
@@ -315,7 +375,7 @@ awful.rules.rules = {
 client.connect_signal("manage", function (c)
     -- Set the windows at the slave,
     -- i.e. put it at the end of others instead of setting it master.
-    -- if not awesome.startup then awful.client.setslave(c) end
+    if not awesome.startup then awful.client.setslave(c) end
 
     if awesome.startup
         and not c.size_hints.user_position
