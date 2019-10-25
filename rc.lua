@@ -27,8 +27,10 @@ editor_cmd = terminal .. " -e " .. editor
 awful.layout.layouts = {
     awful.layout.suit.max,
     -- awful.layout.suit.floating,
-    awful.layout.suit.tile,
-    -- layout.Grid.new()
+    awful.layout.suit.tile.right,
+    awful.layout.suit.tile.bottom,
+
+    -- layout.Tree.new()
 }
 -- }}}
 
@@ -114,7 +116,7 @@ awful.screen.connect_for_each_screen(function(s)
         filter = awful.widget.tasklist.filter.currenttags,
         buttons = tasklist_buttons,
         widget_template = {
-           widget = wibox.container.background, 
+           widget = wibox.container.background,
            id = 'background_role',
            {
                 layout = wibox.layout.fixed.horizontal,
@@ -204,9 +206,21 @@ globalkeys = gears.table.join(
         end,
         {description = "focus previous window", group = "client"}),
 
+    binding.key("M-o", function() awful.layout.inc(1) end,
+        {description = "next layout", group = "awesome"}),
+
+    binding.key("M-S-o", function() awful.layout.inc(-1) end,
+        {description = "prev layout", group = "awesome"}),
+
     -- Standard programs
     binding.key("M-Return", function() awful.spawn(terminal) end,
         {description = "open a terminal", group = "launcher"}),
+
+    binding.key("M-f", function() awful.spawn("firefox") end,
+        {description = "open web browser", group = "launcher"}),
+
+    binding.key("M-S-f", function() awful.spawn("firefox --private-window") end,
+        {description = "open web browser (private window)", group = "launcher"}),
 
     -- Prompt
     binding.key("M-r", function () awful.screen.focused().mypromptbox:run() end,
@@ -223,12 +237,6 @@ globalkeys = gears.table.join(
         end,
         {description = "lua execute prompt", group = "awesome"}),
 
-    binding.key("M-f", function() awful.spawn("firefox") end,
-        {description = "open web browser", group = "launcher"}),
-
-    binding.key("M-S-f", function() awful.spawn("firefox --private-window") end,
-        {description = "open web browser (private window)", group = "launcher"}),
-
     -- Menubar
     binding.key("M-p", function() menubar.show() end,
         {description = "show the menubar", group = "launcher"}),
@@ -236,6 +244,10 @@ globalkeys = gears.table.join(
     -- Lock screen
     binding.key("M-l",
         function()
+            -- TODO: handle keyboard layout
+            -- Lock screen will use the last set keyboard layout and there is
+            -- no way to change it from inside the lock screen.
+            -- This can lead to a screen that cannot be unlocked.
             awful.util.spawn_with_shell('magick import -window root jpg:- ' ..
                 '| magick jpg:- -scale 5% +level 0%,60% -scale 2000% png:- ' ..
                 '| i3lock -i /dev/stdin')
@@ -262,9 +274,9 @@ clientkeys = gears.table.join(
     binding.key("M-q", function (c) c:kill() end,
         {description = "close", group = "client"}),
 
-    binding.key("M-y", function() awful.tag.incmwfact(-0.02) end,
+    binding.key("M-bracketleft", function() awful.tag.incmwfact(-0.02) end,
         {description = "decrease client width", group = "client"}),
-    binding.key("M-o", function() awful.tag.incmwfact(0.02) end,
+    binding.key("M-bracketright", function() awful.tag.incmwfact(0.02) end,
         {description = "increase client width", group = "client"})
 )
 
@@ -402,25 +414,27 @@ client.connect_signal("request::titlebars", function(c)
         end)
     )
 
-    awful.titlebar(c):setup {
-        { -- Left
-            awful.titlebar.widget.iconwidget(c),
-            buttons = buttons,
-            layout  = wibox.layout.fixed.horizontal
-        },
-        { -- Middle
-            { -- Title
-                align  = "center",
-                widget = awful.titlebar.widget.titlewidget(c)
+    if client.focus == c then
+        awful.titlebar(c):setup {
+            { -- Left
+                awful.titlebar.widget.iconwidget(c),
+                buttons = buttons,
+                layout  = wibox.layout.fixed.horizontal
             },
-            buttons = buttons,
-            layout  = wibox.layout.flex.horizontal
-        },
-        { -- Right
-            awful.titlebar.widget.closebutton(c),
-            layout = wibox.layout.fixed.horizontal()
-        },
-        layout = wibox.layout.align.horizontal
-    }
+            { -- Middle
+                { -- Title
+                    align  = "center",
+                    widget = awful.titlebar.widget.titlewidget(c)
+                },
+                buttons = buttons,
+                layout  = wibox.layout.flex.horizontal
+            },
+            { -- Right
+                awful.titlebar.widget.closebutton(c),
+                layout = wibox.layout.fixed.horizontal()
+            },
+            layout = wibox.layout.align.horizontal
+        }
+    end
 end)
 -- }}}
