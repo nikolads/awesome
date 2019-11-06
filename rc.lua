@@ -14,7 +14,6 @@ require("src/errors")
 local kb_layout = require("src/keys/layout")
 local binding = require("src/keys/binding")
 local theme = require("src/theme")
-local layout = require("src/layout")
 
 local hotkeys_popup = require("awful.hotkeys_popup").widget.new({labels = binding.AWFUL_LABELS})
 
@@ -29,8 +28,6 @@ awful.layout.layouts = {
     -- awful.layout.suit.floating,
     awful.layout.suit.tile.right,
     awful.layout.suit.tile.bottom,
-
-    -- layout.Tree.new()
 }
 -- }}}
 
@@ -278,6 +275,20 @@ clientkeys = gears.table.join(
         {description = "decrease client width", group = "client"}),
     binding.key("M-bracketright", function() awful.tag.incmwfact(0.02) end,
         {description = "increase client width", group = "client"})
+
+
+    -- leaved
+    --[[
+    binding.key("M-y", leaved.keys.shiftOrder),
+    binding.key("M-t", leaved.keys.shiftStyle),
+    binding.key("M-S-h", leaved.keys.splitH),
+    binding.key("M-S-v", leaved.keys.splitV),
+    binding.key("M-comma", leaved.keys.swap),
+    binding.key("M-period", leaved.keys.focus),
+    binding.key("M-S-period", leaved.keys.focus_container),
+    binding.key("M-n", leaved.keys.min_container),
+    binding.key("M-b", leaved.keys.select_use_container)
+    --]]
 )
 
 -- Bind all key numbers to tags.
