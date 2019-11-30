@@ -5,6 +5,8 @@ local beautiful = require("beautiful")
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 
+beautiful.hotkeys_modifiers_fg = '#aaaaaa'
+
 local function set_wallpaper(screen)
     if beautiful.wallpaper then
         local wallpaper = beautiful.wallpaper

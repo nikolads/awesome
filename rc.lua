@@ -18,8 +18,8 @@ local theme = require("src/theme")
 local hotkeys_popup = require("awful.hotkeys_popup").widget.new({labels = binding.AWFUL_LABELS})
 
 -- This is used later as the default terminal and editor to run.
-terminal = "kitty"
-editor = os.getenv("EDITOR") or "nano"
+terminal = "/home/nikola/bin/kitty-launch.sh"
+editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
@@ -185,29 +185,68 @@ globalkeys = gears.table.join(
     binding.key("XF86AudioMicMute", function() awful.util.spawn("pactl set-source-mute @DEFAULT_SOURCE@ toggle") end),
 
     -- Layout manipulation
-    binding.key("M-Tab",
-        function ()
-            awful.client.focus.byidx(1)
-            if client.focus then
-                client.focus:raise()
-            end
-        end,
-        {description = "focus next window", group = "client"}),
+    -- binding.key("M-Tab",
+    --     function ()
+    --         awful.client.focus.byidx(1)
+    --         if client.focus then
+    --             client.focus:raise()
+    --         end
+    --     end,
+    --     {description = "focus next window", group = "client"}),
 
-    binding.key("M-S-Tab",
+    -- binding.key("M-S-Tab",
+    --     function()
+    --         awful.client.focus.byidx(-1)
+    --         if client.focus then
+    --             client.focus:raise()
+    --         end
+    --     end,
+    --     {description = "focus prev window", group = "client"}),
+
+    binding.key("M-[",
         function()
             awful.client.focus.byidx(-1)
             if client.focus then
                 client.focus:raise()
             end
         end,
-        {description = "focus previous window", group = "client"}),
+        {description = "focus prev window", group = "layout"}),
+
+    binding.key("M-]",
+        function ()
+            awful.client.focus.byidx(1)
+            if client.focus then
+                client.focus:raise()
+            end
+        end,
+        {description = "focus next window", group = "layout"}),
+
+    binding.key("M-S-[", function() awful.client.swap.byidx(-1) end,
+        {description = "swap with prev", group = "layout"}),
+
+    binding.key("M-S-]", function() awful.client.swap.byidx(1) end,
+        {description = "swap with next", group = "layout"}),
+
+    binding.key("M-,", function () awful.tag.incmwfact(-0.05) end,
+        {description = "dec master width", group = "layout"}),
+    binding.key("M-.", function () awful.tag.incmwfact( 0.05) end,
+        {description = "inc master width", group = "layout"}),
+
+    binding.key("M-m", function() awful.tag.incnmaster(1, nil, true) end,
+        {description = "inc number of masters", group = "layout"}),
+    binding.key("M-S-m", function() awful.tag.incnmaster(-1, nil, true) end,
+        {description = "dec number of masters", group = "layout"}),
+
+    binding.key("M-n", function() awful.tag.incncol(1, nil, true) end,
+        {description = "inc number of columns", group = "layout"}),
+    binding.key("M-S-n", function() awful.tag.incncol(-1, nil, true) end,
+        {description = "dec number of columns", group = "layout"}),
 
     binding.key("M-o", function() awful.layout.inc(1) end,
-        {description = "next layout", group = "awesome"}),
+        {description = "next layout", group = "layout"}),
 
     binding.key("M-S-o", function() awful.layout.inc(-1) end,
-        {description = "prev layout", group = "awesome"}),
+        {description = "prev layout", group = "layout"}),
 
     -- Standard programs
     binding.key("M-Return", function() awful.spawn(terminal) end,
@@ -223,16 +262,16 @@ globalkeys = gears.table.join(
     binding.key("M-r", function () awful.screen.focused().mypromptbox:run() end,
         {description = "run prompt", group = "launcher"}),
 
-    binding.key("M-x",
-        function ()
-            awful.prompt.run {
-                prompt       = "Run Lua code: ",
-                textbox      = awful.screen.focused().mypromptbox.widget,
-                exe_callback = awful.util.eval,
-                history_path = awful.util.get_cache_dir() .. "/history_eval"
-            }
-        end,
-        {description = "lua execute prompt", group = "awesome"}),
+    -- binding.key("M-x",
+    --     function ()
+    --         awful.prompt.run {
+    --             prompt       = "Run Lua code: ",
+    --             textbox      = awful.screen.focused().mypromptbox.widget,
+    --             exe_callback = awful.util.eval,
+    --             history_path = awful.util.get_cache_dir() .. "/history_eval"
+    --         }
+    --     end,
+    --     {description = "lua execute prompt", group = "awesome"}),
 
     -- Menubar
     binding.key("M-p", function() menubar.show() end,
@@ -245,9 +284,9 @@ globalkeys = gears.table.join(
             -- Lock screen will use the last set keyboard layout and there is
             -- no way to change it from inside the lock screen.
             -- This can lead to a screen that cannot be unlocked.
-            awful.util.spawn_with_shell('magick import -window root jpg:- ' ..
-                '| magick jpg:- -scale 5% +level 0%,60% -scale 2000% png:- ' ..
-                '| i3lock -i /dev/stdin')
+            awful.util.spawn_with_shell('magick import -window root -silent jpg:- ' ..
+                '| magick jpg:- -scale 5% +level 0%,60% -scale 1920x1080 rgb:- ' ..
+                '| i3lock --raw 1920x1080:rgb --image /dev/stdin')
         end,
         {description = "lock screen", group = "awesome" }),
 
@@ -255,7 +294,7 @@ globalkeys = gears.table.join(
     binding.key("M-space", kb_layout.next_layout,
         {description = "next keyboard layout", group = "awesome"}),
     binding.key("M-S-space", kb_layout.prev_layout,
-        {description = "previous keyboard layout", group = "awesome"})
+        {description = "prev keyboard layout", group = "awesome"})
 )
 
 clientkeys = gears.table.join(
@@ -269,26 +308,7 @@ clientkeys = gears.table.join(
     --]]
 
     binding.key("M-q", function (c) c:kill() end,
-        {description = "close", group = "client"}),
-
-    binding.key("M-bracketleft", function() awful.tag.incmwfact(-0.02) end,
-        {description = "decrease client width", group = "client"}),
-    binding.key("M-bracketright", function() awful.tag.incmwfact(0.02) end,
-        {description = "increase client width", group = "client"})
-
-
-    -- leaved
-    --[[
-    binding.key("M-y", leaved.keys.shiftOrder),
-    binding.key("M-t", leaved.keys.shiftStyle),
-    binding.key("M-S-h", leaved.keys.splitH),
-    binding.key("M-S-v", leaved.keys.splitV),
-    binding.key("M-comma", leaved.keys.swap),
-    binding.key("M-period", leaved.keys.focus),
-    binding.key("M-S-period", leaved.keys.focus_container),
-    binding.key("M-n", leaved.keys.min_container),
-    binding.key("M-b", leaved.keys.select_use_container)
-    --]]
+        {description = "close", group = "client"})
 )
 
 -- Bind all key numbers to tags.
@@ -342,7 +362,7 @@ end
 for i = 1, 9 do
     handle_tag(i, i + 1)
 end
-handle_tag('grave', 1)
+handle_tag('`', 1)
 
 clientbuttons = gears.table.join(
     awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
