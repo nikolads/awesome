@@ -1,9 +1,9 @@
 local gears = require("gears")
 local beautiful = require("beautiful")
 
--- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+beautiful.wallpaper = "/home/nikola/pictures/wallpaper/sunless_sea_eye.jpg"
 
 beautiful.hotkeys_modifiers_fg = '#aaaaaa'
 

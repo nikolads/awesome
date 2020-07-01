@@ -22,15 +22,6 @@ terminal = "/home/nikola/bin/kitty-launch.sh"
 editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
 
--- Table of layouts to cover with awful.layout.inc, order matters.
-awful.layout.layouts = {
-    awful.layout.suit.max,
-    -- awful.layout.suit.floating,
-    awful.layout.suit.tile.right,
-    awful.layout.suit.tile.bottom,
-}
--- }}}
-
 local modkey = "Mod4"
 
 -- {{{ Helper functions
@@ -54,7 +45,7 @@ menubar.utils.terminal = terminal -- Set the terminal for applications that requ
 
 -- {{{ Wibar
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock()
+widget_text_clock = wibox.widget.textclock()
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -91,24 +82,18 @@ awful.screen.connect_for_each_screen(function(s)
     theme.set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "~", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    local default_layout = awful.layout.suit.max
+    awful.tag({ "~", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, default_layout)
     s.tags[2]:view_only()
 
     -- Create a promptbox for each screen
-    s.mypromptbox = awful.widget.prompt()
-    -- Create an imagebox widget which will contain an icon indicating which layout we're using.
-    -- We need one layoutbox per screen.
-    s.mylayoutbox = awful.widget.layoutbox(s)
-    s.mylayoutbox:buttons(gears.table.join(
-                           awful.button({ }, 1, function () awful.layout.inc( 1) end),
-                           awful.button({ }, 3, function () awful.layout.inc(-1) end),
-                           awful.button({ }, 4, function () awful.layout.inc( 1) end),
-                           awful.button({ }, 5, function () awful.layout.inc(-1) end)))
-    -- Create a taglist widget
-    s.mytaglist = awful.widget.taglist(s, awful.widget.taglist.filter.all, taglist_buttons)
+    local mypromptbox = awful.widget.prompt()
 
-    -- Create a tasklist widget
-    s.mytasklist =  awful.widget.tasklist {
+    -- Create a list of tags
+    local widget_tag_list = awful.widget.taglist(s, awful.widget.taglist.filter.all, taglist_buttons)
+
+    -- Create a list of windows on this tag
+    local widget_task_list =  awful.widget.tasklist {
         screen = s,
         filter = awful.widget.tasklist.filter.currenttags,
         buttons = tasklist_buttons,
@@ -137,31 +122,28 @@ awful.screen.connect_for_each_screen(function(s)
             },
         }
     }
-    s.mytasklist = wibox.container.margin(s.mytasklist, 5, 5)
+    local widget_task_list = wibox.container.margin(widget_task_list, 5, 5)
 
-    -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s })
-
-    -- Add widgets to the wibox
-    s.mywibox:setup {
+    -- Create the bar wibox and populate it with widgets
+    local my_bar = awful.wibar({ position = "top", screen = s })
+    my_bar:setup {
         layout = wibox.layout.align.horizontal,
         { -- Left widgets
             layout = wibox.layout.fixed.horizontal,
-            s.mytaglist,
-            s.mypromptbox,
+            widget_tag_list,
+            mypromptbox,
         },
         {
             layout = wibox.layout.fixed.horizontal,
-            s.mytasklist,
+            widget_task_list,
         },
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
             wibox.widget.systray(),
             kb_layout.widget,
             wibox.widget.textbox(' |'),
-            mytextclock,
-            --s.mylayoutbox,
-        },
+            widget_text_clock,
+        }
     }
 end)
 -- }}}
@@ -184,24 +166,32 @@ globalkeys = gears.table.join(
     binding.key("XF86AudioRaiseVolume", function() awful.util.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%") end),
     binding.key("XF86AudioMicMute", function() awful.util.spawn("pactl set-source-mute @DEFAULT_SOURCE@ toggle") end),
 
-    -- Layout manipulation
-    -- binding.key("M-Tab",
-    --     function ()
-    --         awful.client.focus.byidx(1)
-    --         if client.focus then
-    --             client.focus:raise()
-    --         end
-    --     end,
-    --     {description = "focus next window", group = "client"}),
+    binding.key("M-C-Left", function () awful.screen.focus_relative(-1) end,
+        {description = "focus next screen", group = "screen"}),
+    binding.key("M-C-Right", function () awful.screen.focus_relative( 1) end,
+        {description = "focus prev screen", group = "screen"}),
 
-    -- binding.key("M-S-Tab",
-    --     function()
-    --         awful.client.focus.byidx(-1)
-    --         if client.focus then
-    --             client.focus:raise()
-    --         end
-    --     end,
-    --     {description = "focus prev window", group = "client"}),
+    binding.key("M-a", awful.client.movetoscreen,
+        {description = "move to another screen", group = "screen"}),
+
+    -- Layout manipulation
+    binding.key("M-Tab",
+        function ()
+            awful.client.focus.byidx(1)
+            if client.focus then
+                client.focus:raise()
+            end
+        end,
+        {description = "focus next window", group = "client"}),
+
+    binding.key("M-S-Tab",
+        function()
+            awful.client.focus.byidx(-1)
+            if client.focus then
+                client.focus:raise()
+            end
+        end,
+        {description = "focus prev window", group = "client"}),
 
     binding.key("M-[",
         function()
@@ -222,31 +212,36 @@ globalkeys = gears.table.join(
         {description = "focus next window", group = "layout"}),
 
     binding.key("M-S-[", function() awful.client.swap.byidx(-1) end,
-        {description = "swap with prev", group = "layout"}),
+        {description = "swap with prev window", group = "layout"}),
 
     binding.key("M-S-]", function() awful.client.swap.byidx(1) end,
-        {description = "swap with next", group = "layout"}),
+        {description = "swap with next window", group = "layout"}),
+
+    binding.key("M-z", function() awful.layout.set(awful.layout.suit.max) end,
+        {description = "set layout to MAX", group = "layout" }),
+    binding.key("M-x", function() awful.layout.set(awful.layout.suit.tile.right) end,
+        {description = "set layout to TILE RIGHT", group = "layout" }),
+    binding.key("M-S-x", function() awful.layout.set(awful.layout.suit.tile.left) end,
+        {description = "set layout to TILE LEFT", group = "layout" }),
+    binding.key("M-c", function() awful.layout.set(awful.layout.suit.tile.bottom) end,
+        {description = "set layout to TILE BOTTOM", group = "layout" }),
+    binding.key("M-S-c", function() awful.layout.set(awful.layout.suit.tile.top) end,
+        {description = "set layout to TILE TOP", group = "layout" }),
 
     binding.key("M-,", function () awful.tag.incmwfact(-0.05) end,
-        {description = "dec master width", group = "layout"}),
+        {description = "dec master width", group = "layout param"}),
     binding.key("M-.", function () awful.tag.incmwfact( 0.05) end,
-        {description = "inc master width", group = "layout"}),
+        {description = "inc master width", group = "layout param"}),
 
     binding.key("M-m", function() awful.tag.incnmaster(1, nil, true) end,
-        {description = "inc number of masters", group = "layout"}),
+        {description = "inc number of masters", group = "layout param"}),
     binding.key("M-S-m", function() awful.tag.incnmaster(-1, nil, true) end,
-        {description = "dec number of masters", group = "layout"}),
+        {description = "dec number of masters", group = "layout param"}),
 
     binding.key("M-n", function() awful.tag.incncol(1, nil, true) end,
-        {description = "inc number of columns", group = "layout"}),
+        {description = "inc number of columns", group = "layout param"}),
     binding.key("M-S-n", function() awful.tag.incncol(-1, nil, true) end,
-        {description = "dec number of columns", group = "layout"}),
-
-    binding.key("M-o", function() awful.layout.inc(1) end,
-        {description = "next layout", group = "layout"}),
-
-    binding.key("M-S-o", function() awful.layout.inc(-1) end,
-        {description = "prev layout", group = "layout"}),
+        {description = "dec number of columns", group = "layout param"}),
 
     -- Standard programs
     binding.key("M-Return", function() awful.spawn(terminal) end,
@@ -284,9 +279,9 @@ globalkeys = gears.table.join(
             -- Lock screen will use the last set keyboard layout and there is
             -- no way to change it from inside the lock screen.
             -- This can lead to a screen that cannot be unlocked.
-            awful.util.spawn_with_shell('magick import -window root -silent jpg:- ' ..
-                '| magick jpg:- -scale 5% +level 0%,60% -scale 1920x1080 rgb:- ' ..
-                '| i3lock --raw 1920x1080:rgb --image /dev/stdin')
+            awful.util.spawn_with_shell(
+                'magick /home/nikola/pictures/wallpaper/crypt_of_the_necrodancer.jpg -resize 1920x1080! rgb:- ' ..
+                '| i3lock --raw 1920x1080:rgb --image /dev/stdin --tiling')
         end,
         {description = "lock screen", group = "awesome" }),
 
@@ -298,14 +293,12 @@ globalkeys = gears.table.join(
 )
 
 clientkeys = gears.table.join(
-    --[[
-    binding.key("M-f",
+    binding.key("M-h",
         function (c)
             c.fullscreen = not c.fullscreen
             c:raise()
         end,
         {description = "toggle fullscreen", group = "client"}),
-    --]]
 
     binding.key("M-q", function (c) c:kill() end,
         {description = "close", group = "client"})
